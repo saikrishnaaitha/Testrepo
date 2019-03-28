@@ -1,0 +1,140 @@
+Useful Links to be followed
+Splunk DashBoard
+https://docs.google.com/document/d/1qhch5NqFFHMEV9FCezagcnlMlF80Ybs8lhTFkCwTs10/edit?ts=5b754491
+BT Accesss 
+Central.my.salesforce.com
+Refocus
+https://refocus.internal.salesforce.com/perspectives/SR_Grids
+Splunk Event COdes
+https://git.soma.salesforce.com/pages/monitoring/coreprettyviewer/214/app-logging-format.xml
+Argus Alert Codes
+https://sites.google.com/a/salesforce.com/missioncriticalsupport/home/knowledge-resources/goc-alert-codes?pli=1
+
+Splunk Search
+https://splunk-web.crz.salesforce.com/en-US/app/search/search
+
+Splunk Documentation
+https://docs.google.com/document/d/1c3P82WsHPkQI8MYx03G2-vpSI0UHq8Df_qT37Zm9RkI/edit#
+
+Confluence Link
+https://confluence.internal.salesforce.com/display/PROM/Alert+Handling+Articles
+
+
+------------------------------------------------------------------------------------------
+Create Case 
+https://mcsorg.lightning.force.com/lightning/o/Report/home?queryScope=mru
+
+--------------------------------------
+/*************************Splunk queries*****************/
+--------------------------------------------------------------------------------------------------------------------------------
+
+
+
+Request Rate :index=NA67 00D50000000c9MW racNode=* ( `logRecordType(V)` OR  `logRecordType(A)` OR  `logRecordType(a)` OR  `logRecordType(Y)` OR  `logRecordType(H)`   OR  `logRecordType(p)` OR  `logRecordType(R)` OR  `logRecordType(L)` OR  `logRecordType(U)` OR  `logRecordType(2)` OR  `logRecordType(J)` OR logRecordTypeaprst=1)  00D2A000000deA5 | eval myDate=_time | bucket myDate span=1h | rex field=logName "(?<excludedLogName>Api|Soap|Image|dynamicCSS|  ping.jsp)" | rex field=organizationId "(?<org_id>00D.*)" | rex field=userId "(?<user_id>0[30]5.*)" | eval excludeMe=if(isnull(user_id) AND isnull(org_id) AND   isnotnull(excludedLogName),1,0) | search excludeMe=0 | eval includeMe=if(((isnull(userId) AND isnull(organizationId)) OR isnotnull(userId)),1,0) | search   includeMe=1 | stats count by userId logName
+
+sysnchronous Callout Failure 
+index=na68 00D30000001H1Cv userId=* `logRecordType(apout)` statusCode!=200 | join type=inner requestId [search index=na68 00D30000001H1Cv userId=* `logRecordType(axapx)` entryPoint="*" calloutTime>0] | eval start=if(logRecordType=axapx,axapx_time,_time)-(runTime/1000) | eval end=if(logRecordType=axapx,axapx_time,_time)+1 | convert timeformat="%m/%d/%Y:%H:%M:%S" ctime(start) AS started | convert timeformat="%m/%d/%Y:%H:%M:%S" ctime(end) AS ended | table  started ended  userId entryPoint runTime calloutTime time url statusCode | stats count by entryPoint userId url statusCode
+
+Synchronous callout failures : index=NA45 00D300000008uIL userId=* `logRecordType(apout)` *  | join type=inner requestId [search index=NA45 00D300000008uIL userId=* earliest=-60m@m latest=now `logRecordType(axapx)` entryPoint="*" calloutTime>0] | eval start=if(logRecordType=axapx,axapx_time,_time)-(runTime/1000) | eval end=if(logRecordType=axapx,axapx_time,_time)+1 | convert timeformat="%m/%d/%Y:%H:%M:%S" ctime(start) AS started | convert timeformat="%m/%d/%Y:%H:%M:%S" ctime(end) AS ended | table  started ended  userId entryPoint runTime calloutTime time url statusCode | stats count by entryPoint url statusCode
+
+Query tofetch events in Splunk
+index=NA45 organizationId=00D30000000nW2o `logRecordType(U,V,A,a,aprst,apars,vfrmt,R,apblk)` 
+starttime=10/24/2018:11:30:00 endtime=10/24/2018:11:55:55 | table runTime logRecordType userId logName requestId
+
+Average Page time(APT)
+index=NA56 organizationId=00Di0000000ZYVO `logRecordType(U,V,A,a,aprst,apars,vfrmt,R,apblk)` starttime=11/01/2018:08:25:11 endtime=11/35/2018:08:35:11 | stats avg(runTime) as avgRunTime sum(runTime) as totalRunTime by logRecordType, userId, logName | sort -avgRunTime
+
+index=NA56 organizationId=00D300000001JJh 00560000000yIdL logName="Api" `logRecordType(U,V,A,a,aprst,apars,vfrmt,R,apblk)` starttime=12/02/2018:08:30:11 endtime=12/02/2018:09:05:11 | stats avg(runTime) as avgRunTime sum(runTime) as totalRunTime by logRecordType, userId, logName, methodName, entityName
+
+
+MQDashBoard
+https://splunk-web.crz.salesforce.com/en-US/app/publicSharing/publicotherdash_support__org_mq_usage?form.instance=AP2&form.organizationId=00D28000000fAvP&form.node=*&form.messageTypeName=ASYNC_API&earliest=-60s&latest=now&form.span=1h
+
+
+Single Email Message Limits
+
+index=NA74 "00Do0000000KS0Y" `logRecordType(axapx)` | join type=inner requestId [search index=NA74 "00Do0000000KS0Y" `logRecordType(emout)` category=apiSingleMail ] | stats count sum(recipientCount) by entryPoint, to, from,userId | sort -sum(recipientCount)
+
+
+======================Query for Queries====================
+index=NA42 CASE(00Di0000000Xs0j) earliest=1/22/2019:21:30:00 latest=1/22/2019:21:32:00 `logRecordType(cocod)` | stats count avg(queryExecutionTime) max(queryExecutionTime) by QueryType uniqueQueryIdentifier querySqlId
+
+
+--------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------------------------
+/*************************Splunk DashBoards To be Used****************/
+--------------------------------------------------------------------------------------------------------------------------------
+
+Concurrent and Connection Pool have same dashboard
+Bulk Api Performanace and Limit has same dashboard
+
+
+--------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------
+
+=======================================================================================================================================================//*************************Callouts queries ****************/
+
+Long Running Callouts
+(index=na22) (sourcetype=CASE(applog*:apout)) 00DA0000000H3hn time>5000 | rex field=url "(?<urlPath>[a-zA-Z]+://[^/]+/)" | stats count avg(time) by urlPath url
+Get long running callout for a apex
+(index=na22) (sourcetype=CASE(applog*:apout)) 00DA0000000H3hn time>5000 earliest=-7d | rex field=url "(?<urlPath>[a-zA-Z]+://[^/]+/)" | join requestId [ search (index=na22) (sourcetype=CASE(applog*:axapx)) 00DA0000000H3hn (quiddity=R OR quiddity=V OR quiddity=W OR quiddity=H OR quiddity=X OR quiddity=M OR quiddity=L OR quiddity=K OR quiddity=I OR quiddity=E) calloutTime>5000 entryPoint="VF- /apex/xmainpane" earliest=-7d] | stats count by urlPath url
+Get long running callout for a VF page
+(index=na22) (sourcetype=CASE(applog*:cocod)) 00DA0000000H3hn earliest=-1d QueryType=SOQL | join requestId [ search (index=na22) (sourcetype=CASE(applog*:V)) 00DA0000000H3hn dbTotalTime>5000000000 pageName="*apex/CasemonGetXML*" earliest=-1d] | stats count max(queryExecutionTime) by QueryType uniqueQueryIdentifier
+Get cocod log line for long running apex
+(index=na22) (sourcetype=CASE(applog*:cocod)) 00DA0000000H3hn earliest=-7d | join requestId [ search (index=na22) (sourcetype=CASE(applog*:axapx)) 00DA0000000H3hn (quiddity=R OR quiddity=V OR quiddity=W OR quiddity=H OR quiddity=X OR quiddity=M OR quiddity=L OR quiddity=K OR quiddity=I OR quiddity=E) dbTime>5000 entryPoint="CaseMonInbound.processPayload" earliest=-7d] | stats count max(queryExecutionTime) by QueryType uniqueQueryIdentifier
+Get cocod log line for long running VF
+(index=na22) (sourcetype=CASE(applog*:cocod)) 00DA0000000H3hn earliest=-7d | join requestId [ search (index=na22) (sourcetype=CASE(applog*:V)) 00DA0000000H3hn dbTotalTime>5000000 pageName="/apex/casemonapp" earliest=-7d] | stats count by QueryType uniqueQueryIdentifier avg(queryExecutionTime)
+Long running soql
+
+
+=======================================================================================================================================================
+
+
+
+Tools and their Uses
+Splunk - To analyse transcations from each Orgs in DB (Contains Raw data)
+Gadget & Argus- To alert for Access requests with in the specified time limit of any process 
+GUS - Raise Investigations to Product teams for strange issues 
+podTab - Can show up all the deployment transcations or every transcations running in each Customer org. (Shows up the time consuming on each transcation)
+
+
+
+https://splunk-web.crz.salesforce.com/en-US/app/publicSharing/publicotherdash_support__org_db_cpu?form.instance=NA45&form.organizationId=00D30000000nW2o&earliest=-60m%40m&latest=now&form.span=1m
+
+KB Articles:https://org62.my.salesforce.com/knowledge/publishing/articleEdit.apexp?id=kA00M000000PYbI&status=S01
+
+https://docs.google.com/document/d/1_9geFTDBC8g1lzmgh2X57PyICtK5E8xHbro2UqhXJ6c/edit?ts=5b030381
+GHO Template
+Alert Handling : https://drive.google.com/drive/folders/1Zr9cvQ9RqOgzV3DXU4oTcD-wi_NwWHgn
+Goc++ Alert codes : https://sites.google.com/a/salesforce.com/missioncriticalsupport/home/knowledge-resources/goc-alert-codes?pli=1
+Create Case : https://mcsorg.lightning.force.com/lightning/r/Report/00O36000007KUKVEA4/view?queryScope=userFolders%27
+
+https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+Infrastructure  link
+ https://sites.google.com/a/salesforce.com/intro-to-the-salesforce-infrastructure/section-1-organizations/unit-1-organizations-as-customer-units 
+ 
+ ============Salesforce Infra===========
+ https://docs.google.com/presentation/d/1Pj7qF-SH_yq1ZFngPSqlyaacBM1K1edjAB6Kw5NNRPc/edit#slide=id.g433e41aef7_1_248 
+
+
+
+===============PSETOOOL=================
+
+https://org62--pse.na44.visual.force.com/apex/PSATimecardEntry
+
+
+https://docs.google.com/spreadsheets/d/1sTQv9xlH61YtgPanswrK8-a4gFaC4YP_CYkpYggS0zg/edit#gid=0 
+
+
+
+To know at what time bulk data load jobs will be free :
+====================================================
+index=na7 00D300000006urq `logRecordType(apaaa)` earliest=-24h operation=CREATE_BATCH NOT("ApiBatchItems Limit exceeded.") | timechart span=1h count by jobId useother=f | addColTotals
+
+index=na7 00D300000006urq `logRecordType(apaaa)` earliest=-48h operation=CREATE_BATCH success=1 | timechart span=1h count | addColTotals
+
+index=na7 00D300000006urq `logRecordType(apaaa)` earliest=05/02/2018:07:10:00 operation=CREATE_BATCH CASE(750A0000007E1UX) NOT("ApiBatchItems Limit exceeded.") | timechart span=1d count by jobId
+
+index=na7 00D300000006urq `logRecordType(apaaa)` earliest=-24h operation=CREATE_BATCH NOT("ApiBatchItems Limit exceeded.") | timechart span=1h count by jobId useother=f | addColTotals
